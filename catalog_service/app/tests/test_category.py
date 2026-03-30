@@ -47,7 +47,9 @@ def mock_product():
 
 class TestCategory:
     @pytest.mark.asyncio
-    async def test_create_category_success(self, mock_db_session):
+    async def test_create_category_success(self, mock_db_session, mock_result):
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db_session.execute.return_value = mock_result
         category_data = CategoryCreate(name="Test Category")
 
         result = await category_crud.create(db=mock_db_session, obj_in=category_data)
@@ -57,7 +59,10 @@ class TestCategory:
         mock_db_session.rollback.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_create_category_exists(self, mock_db_session):
+    async def test_create_category_exists(self, mock_db_session, mock_result, mock_category):
+        mock_result.scalar_one_or_none.return_value = mock_category
+        mock_db_session.execute.return_value = mock_result
+
         category_data = CategoryCreate(name="Existing Category")
         mock_db_session.commit.side_effect = IntegrityError(MagicMock(), MagicMock(), MagicMock())
 
@@ -65,8 +70,8 @@ class TestCategory:
             await category_crud.create(db=mock_db_session, obj_in=category_data)
 
         assert exc_info.value.status_code == 409
-        assert exc_info.value.detail == "Category with name Existing Category already exists"
-        mock_db_session.rollback.assert_called_once()
+        assert exc_info.value.detail == "Category Existing Category already exists"
+        mock_db_session.commit.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_get_category_success(self, mock_db_session, mock_category, mock_result):
@@ -136,7 +141,9 @@ class TestCategory:
         assert mock_db_session.execute.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_update_category_success(self, mock_db_session, mock_category):
+    async def test_update_category_success(self, mock_db_session, mock_category, mock_result):
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db_session.execute.return_value = mock_result
         update_data = CategoryUpdate(name="Updated name")
 
         updated_category = await category_crud.update(db=mock_db_session, db_obj=mock_category, obj_in=update_data)
@@ -145,7 +152,9 @@ class TestCategory:
         mock_db_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_category_name_exists(self, mock_db_session, mock_category):
+    async def test_update_category_name_exists(self, mock_db_session, mock_category, mock_result):
+        mock_result.scalar_one_or_none.return_value = mock_category
+        mock_db_session.execute.return_value = mock_result
         update_data = CategoryUpdate(name="Existing name")
         mock_db_session.commit.side_effect = IntegrityError(MagicMock(), MagicMock(), MagicMock())
 
@@ -153,9 +162,8 @@ class TestCategory:
             await category_crud.update(db=mock_db_session, db_obj=mock_category, obj_in=update_data)
 
         assert exc_info.value.status_code == 409
-        assert exc_info.value.detail == "Category with name Existing name already exists"
-        mock_db_session.commit.assert_called_once()
-        mock_db_session.rollback.assert_called_once()
+        assert exc_info.value.detail == "Category Existing name already exists"
+        mock_db_session.commit.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_delete_category_success(self, mock_db_session, mock_category, mock_result):

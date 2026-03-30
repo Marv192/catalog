@@ -5,7 +5,6 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
 
 from app.crud.products import product_crud
 from app.models import Product
@@ -41,9 +40,11 @@ def mock_product():
 
 class TestProduct:
     @pytest.mark.asyncio
-    async def test_create_product_success(self, mock_db_session, mock_product):
+    async def test_create_product_success(self, mock_db_session, mock_product, mock_result):
         product_data = ProductCreate(name=mock_product.name, description=mock_product.description,
                                      price=mock_product.price, category_id=mock_product.category_id)
+        mock_result.scalar_one_or_none.return_value = True
+        mock_db_session.execute.return_value = mock_result
 
         result = await product_crud.create(db=mock_db_session, obj_in=product_data)
 
@@ -55,18 +56,19 @@ class TestProduct:
         mock_db_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_create_product_category_not_found(self, mock_db_session, mock_product):
+    async def test_create_product_category_not_found(self, mock_db_session, mock_product, mock_result):
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db_session.execute.return_value = mock_result
+
         product_data = ProductCreate(name=mock_product.name, description=mock_product.description,
                                      price=mock_product.price, category_id=mock_product.category_id)
-
-        mock_db_session.commit.side_effect = IntegrityError(MagicMock(), MagicMock(), MagicMock())
 
         with pytest.raises(HTTPException) as exc_info:
             await product_crud.create(db=mock_db_session, obj_in=product_data)
 
         assert exc_info.value.status_code == 400
-        assert exc_info.value.detail == f"Category with id {product_data.category_id} does not exist"
-        mock_db_session.rollback.assert_called_once()
+        assert exc_info.value.detail == f"Category 123e4567-e89b-12d3-a456-426614174000 does not exist"
+        mock_db_session.commit.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_get_product_success(self, mock_db_session, mock_product, mock_result):
@@ -120,15 +122,17 @@ class TestProduct:
 
     @pytest.mark.asyncio
     async def test_update_product_wrong_category_id(self, mock_db_session, mock_product, mock_result):
-        update_data = ProductUpdate(category_id=uuid4())
-        mock_db_session.commit.side_effect = IntegrityError(MagicMock(), MagicMock(), MagicMock())
+        new_category_id = uuid4()
+        update_data = ProductUpdate(category_id=new_category_id)
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db_session.execute.return_value = mock_result
 
         with pytest.raises(HTTPException) as exc_info:
             await product_crud.update(db=mock_db_session, db_obj=mock_product, obj_in=update_data)
 
         assert exc_info.value.status_code == 400
-        assert exc_info.value.detail == "Invalid category_id: category does not exist"
-        mock_db_session.rollback.assert_called_once()
+        assert exc_info.value.detail == f"Category {new_category_id} does not exist"
+        mock_db_session.commit.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_update_product_event_payload(self, mock_db_session, mock_product, mock_result):

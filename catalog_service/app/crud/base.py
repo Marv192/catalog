@@ -19,6 +19,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         obj_in_data =obj_in.model_dump()
         db_obj = self.model(**obj_in_data)
         db.add(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
     async def get(self, db: AsyncSession, *, obj_id: UUID) -> Optional[ModelType]:
@@ -38,6 +40,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             setattr(db_obj, field, value)
 
         db.add(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
     async def delete(self, db: AsyncSession, *, obj_id: UUID) -> Optional[ModelType]:
