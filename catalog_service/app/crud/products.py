@@ -10,6 +10,9 @@ from app.models.product import Product
 from app.routers.validators import validate_category_exists
 from app.schemas.products import ProductCreate, ProductUpdate
 
+PRODUCT_SKIP = 0
+PRODUCT_LIMIT = 100
+
 
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
     async def create(self, db: AsyncSession, *, obj_in: ProductCreate) -> Product:
@@ -24,7 +27,8 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
 
         return product_info
 
-    async def get_all_products(self, db: AsyncSession, *, skip: int = 0, limit: int = 100) -> list[Product]:
+    async def get_all_products(self, db: AsyncSession, *, skip: int = PRODUCT_SKIP,
+                               limit: int = PRODUCT_LIMIT) -> list[Product]:
         return await super().get_multi(db=db, skip=skip, limit=limit)
 
     async def update(self, db: AsyncSession, *, db_obj: Product, obj_in: ProductUpdate) -> Product:

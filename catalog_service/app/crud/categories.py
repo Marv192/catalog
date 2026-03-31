@@ -12,6 +12,9 @@ from app.routers.validators import validate_category_unique
 from app.schemas.categories import CategoryCreate, CategoryUpdate
 from app.utils.cache import get_cached, set_cache
 
+CATEGORY_SKIP = 0
+CATEGORY_LIMIT = 100
+
 
 class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
     async def create(self, db: AsyncSession, *, obj_in: CategoryCreate) -> Category:
@@ -26,7 +29,8 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
 
         return category_info
 
-    async def get_all_categories(self, db: AsyncSession, *, skip: int = 0, limit: int = 100) -> list[dict]:
+    async def get_all_categories(self, db: AsyncSession, *, skip: int = CATEGORY_SKIP,
+                                 limit: int = CATEGORY_LIMIT) -> list[dict]:
         cached = await get_cached('categories')
 
         if cached:
@@ -43,7 +47,7 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
         return categories
 
     async def get_category_products(self, db: AsyncSession, *, category_id: UUID,
-                                    skip: int = 0, limit: int = 100) -> list[Product]:
+                                    skip: int = CATEGORY_SKIP, limit: int = CATEGORY_LIMIT) -> list[Product]:
         await category_crud.get(db=db, category_id=category_id)
         stmt = select(Product).where(Product.category_id == category_id).offset(skip).limit(limit)
         result = await db.execute(stmt)

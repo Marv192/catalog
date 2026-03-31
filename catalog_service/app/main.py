@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Security, Request, status
@@ -10,24 +11,27 @@ from app.routers.middleware import AuthMiddleware
 from app.routers.products import products
 from app.utils.exceptions import PermissionDeniedError, TokenExpiredError, InvalidTokenError
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
         await engine.connect()
-        print("Database connected")
+        logger.info("Database connected")
     except Exception as e:
-        print(f"Database connection error: {e}")
+        logger.error(f"Database connection error: {e}")
     yield
     try:
         engine.disconnect()
     except Exception as e:
-        print(f"Database disconnect error: {e}")
+        logger.error(f"Database disconnect error: {e}")
 
 
 security = HTTPBearer()
 
 app = FastAPI(lifespan=lifespan, title="Catalog Service")
+
 
 @app.exception_handler(PermissionDeniedError)
 async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
@@ -39,6 +43,7 @@ async def permission_denied_handler(request: Request, exc: PermissionDeniedError
         }
     )
 
+
 @app.exception_handler(TokenExpiredError)
 async def token_expired_handler(request: Request, exc: TokenExpiredError):
     return JSONResponse(
@@ -49,6 +54,7 @@ async def token_expired_handler(request: Request, exc: TokenExpiredError):
         }
     )
 
+
 @app.exception_handler(InvalidTokenError)
 async def invalid_token_handler(request: Request, exc: InvalidTokenError):
     return JSONResponse(
@@ -58,6 +64,7 @@ async def invalid_token_handler(request: Request, exc: InvalidTokenError):
             "detail": str(exc)
         }
     )
+
 
 app.add_middleware(AuthMiddleware)
 app.include_router(categories, prefix="/categories", tags=["categories"], dependencies=[Security(security)])
