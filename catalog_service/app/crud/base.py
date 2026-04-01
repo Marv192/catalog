@@ -5,14 +5,12 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants import DEFAULT_SKIP, DEFAULT_LIMIT
 from app.models.db import Base
 
 ModelType = TypeVar('ModelType', bound=Base)
 CreateSchemaType = TypeVar('CreateSchemaType', bound=BaseModel)
 UpdateSchemaType = TypeVar('UpdateSchemaType', bound=BaseModel)
-
-DEFAULT_SKIP = 0
-DEFAULT_LIMIT = 100
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
@@ -58,4 +56,5 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return None
 
         await db.delete(obj)
+        await db.commit()
         return obj

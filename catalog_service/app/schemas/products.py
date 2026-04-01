@@ -5,19 +5,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
 
-NAME_MIN_LENGTH = 1
-NAME_MAX_LENGTH = 64
-DESCRIPTION_MIN_LENGTH = 1
-DESCRIPTION_MAX_LENGTH = 1000
-PRICE_MAX_DIGITS = 10
-PRICE_MIN_VALUE = 0
-PRICE_DECIMAL_PLACES = 2
+from app.constants import PRODUCT_NAME_MIN_LENGTH, PRODUCT_NAME_MAX_LENGTH, PRODUCT_DESCRIPTION_MIN_LENGTH, \
+    PRODUCT_DESCRIPTION_MAX_LENGTH, PRODUCT_PRICE_MIN_VALUE, PRODUCT_PRICE_DECIMAL_PLACES, PRODUCT_PRICE_MAX_DIGITS
 
 
 class ProductBase(BaseModel):
-    name: str = Field(min_length=NAME_MIN_LENGTH, max_length=NAME_MAX_LENGTH)
-    description: str = Field(min_length=DESCRIPTION_MIN_LENGTH, max_length=DESCRIPTION_MAX_LENGTH)
-    price: Decimal = Field(gt=PRICE_MIN_VALUE, decimal_places=PRICE_DECIMAL_PLACES, max_digits=PRICE_MAX_DIGITS)
+    name: str = Field(min_length=PRODUCT_NAME_MIN_LENGTH, max_length=PRODUCT_NAME_MAX_LENGTH)
+    description: str = Field(min_length=PRODUCT_DESCRIPTION_MIN_LENGTH, max_length=PRODUCT_DESCRIPTION_MAX_LENGTH)
+    price: Decimal = Field(gt=PRODUCT_PRICE_MIN_VALUE, decimal_places=PRODUCT_PRICE_DECIMAL_PLACES,
+                           max_digits=PRODUCT_PRICE_MAX_DIGITS)
     category_id: UUID
 
 
@@ -26,11 +22,12 @@ class ProductCreate(ProductBase):
 
 
 class ProductUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=NAME_MIN_LENGTH, max_length=NAME_MAX_LENGTH)
-    description: Optional[str] = Field(default=None, min_length=DESCRIPTION_MIN_LENGTH,
-                                       max_length=DESCRIPTION_MAX_LENGTH)
-    price: Optional[Decimal] = Field(default=None, gt=PRICE_MIN_VALUE, decimal_places=PRICE_DECIMAL_PLACES,
-                                     max_digits=PRICE_MAX_DIGITS)
+    name: Optional[str] = Field(default=None, min_length=PRODUCT_NAME_MIN_LENGTH, max_length=PRODUCT_NAME_MAX_LENGTH)
+    description: Optional[str] = Field(default=None, min_length=PRODUCT_DESCRIPTION_MIN_LENGTH,
+                                       max_length=PRODUCT_DESCRIPTION_MAX_LENGTH)
+    price: Optional[Decimal] = Field(default=None, gt=PRODUCT_PRICE_MIN_VALUE,
+                                     decimal_places=PRODUCT_PRICE_DECIMAL_PLACES,
+                                     max_digits=PRODUCT_PRICE_MAX_DIGITS)
     category_id: Optional[UUID] = None
 
 

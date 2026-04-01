@@ -170,5 +170,4 @@ class TestProduct:
         assert exc_info.value.status_code == 404
         assert exc_info.value.detail == "Product not found"
         mock_db_session.commit.assert_not_called()
-        mock_db_session.rollback.assert_called_once()
 

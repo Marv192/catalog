@@ -4,12 +4,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
 
-NAME_MIN_LENGTH = 1
-NAME_MAX_LENGTH = 64
+from app.constants import CATEGORY_NAME_MIN_LENGTH, CATEGORY_NAME_MAX_LENGTH
 
 
 class CategoryBase(BaseModel):
-    name: str = Field(min_length=NAME_MIN_LENGTH, max_length=NAME_MAX_LENGTH)
+    name: str = Field(min_length=CATEGORY_NAME_MIN_LENGTH, max_length=CATEGORY_NAME_MAX_LENGTH)
 
 
 class CategoryCreate(CategoryBase):
@@ -17,7 +16,7 @@ class CategoryCreate(CategoryBase):
 
 
 class CategoryUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=NAME_MIN_LENGTH, max_length=NAME_MAX_LENGTH)
+    name: Optional[str] = Field(default=None, min_length=CATEGORY_NAME_MIN_LENGTH, max_length=CATEGORY_NAME_MAX_LENGTH)
 
 
 class CategoryDB(CategoryCreate):

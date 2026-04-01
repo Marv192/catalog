@@ -2,9 +2,8 @@ import json
 import logging
 from typing import Optional, Any
 
+from app.constants import CACHE_TTL
 from app.utils.redis_client import redis_client
-
-CACHE_TTL = 60 * 60
 
 logger = logging.getLogger(__name__)
 

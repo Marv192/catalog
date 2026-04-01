@@ -4,14 +4,12 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants import PRODUCT_SKIP, PRODUCT_LIMIT
 from app.crud.base import CRUDBase
 from app.kafka.events import send_product_updated_event
 from app.models.product import Product
 from app.routers.validators import validate_category_exists
 from app.schemas.products import ProductCreate, ProductUpdate
-
-PRODUCT_SKIP = 0
-PRODUCT_LIMIT = 100
 
 
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
@@ -45,22 +43,12 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         return result
 
     async def delete(self, db: AsyncSession, *, product_id: UUID) -> Optional[Product]:
-        try:
-            result = await super().delete(db=db, obj_id=product_id)
+        result = await super().delete(db=db, obj_id=product_id)
 
-            if not result:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product not found")
+        if not result:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product not found")
 
-            await db.commit()
-            return result
-
-        except HTTPException:
-            await db.rollback()
-            raise
-
-        except Exception as e:
-            await db.rollback()
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        return result
 
 
 product_crud = CRUDProduct(Product)

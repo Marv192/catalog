@@ -5,15 +5,13 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants import CATEGORY_LIMIT, CATEGORY_SKIP
 from app.crud.base import CRUDBase
 from app.models import Product
 from app.models.category import Category
 from app.routers.validators import validate_category_unique
 from app.schemas.categories import CategoryCreate, CategoryUpdate
 from app.utils.cache import get_cached, set_cache
-
-CATEGORY_SKIP = 0
-CATEGORY_LIMIT = 100
 
 
 class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
@@ -61,22 +59,12 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
         return await super().update(db=db, db_obj=db_obj, obj_in=obj_in)
 
     async def delete(self, db: AsyncSession, *, category_id: UUID) -> Optional[Category]:
-        try:
-            result = await super().delete(db=db, obj_id=category_id)
+        result = await super().delete(db=db, obj_id=category_id)
 
-            if not result:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        if not result:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
-            await db.commit()
-            return result
-
-        except HTTPException:
-            await db.rollback()
-            raise
-
-        except Exception as e:
-            await db.rollback()
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        return result
 
 
 category_crud = CRUDCategory(Category)
