@@ -1,0 +1,137 @@
+services:
+  catalog:
+    build: ./catalog_service
+    image: marketplace_catalog
+    container_name: catalog
+    restart: always
+    command: 'sh -c "alembic upgrade head && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"'
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres_catalog:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - backend_network
+    volumes:
+      - ./catalog_service:/catalog_service
+
+  postgres_catalog:
+    image: postgres:16-alpine
+    container_name: postgres_catalog
+    restart: always
+    volumes:
+      - postgres_data_catalog:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USERNAME}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+
+    ports:
+      - "5433:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+    networks:
+      - backend_network
+
+  redis_catalog:
+    image: redis:7-alpine
+    container_name: redis_catalog
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 16mb
+
+    volumes:
+      - redis_data_catalog:/data
+    networks:
+      - backend_network
+
+  kafka:
+    image: apache/kafka:4.0.2
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      CLUSTER_ID: "rH_oBkeySo2gzDpF1PZGwA"
+      KAFKA_KRAFT_MODE: "true"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_NODE_ID: "1"
+
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092"
+
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092"
+      
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+
+      KAFKA_BROKER_ID: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: "3"
+      KAFKA_LOG_RETENTION_HOURS: "12"
+      KAFKA_MESSAGE_MAX_BYTES: "1048576"
+
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/9092' 2>/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+    networks:
+      - backend_network
+
+  kafka-init:
+    image: apache/kafka:4.0.2
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c '
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists
+      --topic PRODUCT_UPDATED
+      --bootstrap-server kafka:29092
+      --partitions 3
+      --replication-factor 1
+      --config retention.ms=43200000;
+      echo "Kafka initialization complete, created topics:";
+      /opt/kafka/bin/kafka-topics.sh --list --bootstrap-server kafka:29092;'
+    # retention = 12 hours
+    
+    networks:
+      - backend_network
+
+
+volumes:
+  postgres_data_catalog:
+  redis_data_catalog:
+  kafka_data:
+
+networks:
+  backend_network:
+    driver: bridge
