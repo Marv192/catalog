@@ -22,3 +22,10 @@ async def get_cached(key: str) -> Optional[list[dict]]:
     except Exception as e:
         logger.error(f"{key} cache read error: {e}")
         return None
+
+
+async def delete_cache(key: str):
+    try:
+        await redis_client.delete(key)
+    except Exception as e:
+        logger.error(f"{key} cache delete error: {e}")
