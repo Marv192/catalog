@@ -11,6 +11,8 @@ class CatalogSettings(BaseSettings):
     redis_host: str = Field(default="redis_catalog")
     redis_port: int = Field(default=6379)
     cache_ttl: int = Field(default=86400)
+    kafka_bootstrap_servers: str = Field(default="kafka:29092")
+    kafka_topic: str = Field(default="PRODUCT_UPDATED")
 
 
 settings = CatalogSettings()

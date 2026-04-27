@@ -3,12 +3,13 @@ from typing import Optional
 
 from confluent_kafka import Producer
 
+from app.config import settings
 from app.schemas.product_event import ProductUpdatedEvent
 
 logger = logging.getLogger(__name__)
 
 class KafkaProductProducer:
-    def __init__(self, bootstrap_servers: str = "kafka:29092"):
+    def __init__(self, bootstrap_servers: str = settings.kafka_bootstrap_servers):
         self.config = {
             "bootstrap.servers": bootstrap_servers,
             "client.id": "catalog-service",
@@ -31,7 +32,7 @@ class KafkaProductProducer:
         else:
             logger.info(f"Message delivered to {msg.topic()}")
 
-    def send_product_updated(self, event: ProductUpdatedEvent, topic: str = "PRODUCT_UPDATED",
+    def send_product_updated(self, event: ProductUpdatedEvent, topic: str = settings.kafka_topic,
                              key: Optional[str] = None) -> bool:
         try:
             value = event.model_dump_json().encode("utf-8")
