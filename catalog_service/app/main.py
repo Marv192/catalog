@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Database connection error: {e}")
     yield
     try:
-        engine.disconnect()
+        engine.dispose()
     except Exception as e:
         logger.error(f"Database disconnect error: {e}")
 

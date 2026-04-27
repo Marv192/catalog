@@ -1,9 +1,18 @@
-import os
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-DUMMY_DB_URL = 'postgresql+asyncpg://user:password@localhost:5432/testdb'
-DATABASE_URL = os.getenv('DATABASE_URL', DUMMY_DB_URL)
-MIGRATION_DATABASE_URL = os.getenv('MIGRATION_DATABASE_URL', DUMMY_DB_URL)
+class CatalogSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+    database_url: str
+    migration_database_url: str
+    jwt_secret: str
+    jwt_algorithm: str = Field(default="HS256")
+    redis_host: str = Field(default="redis_catalog")
+    redis_port: int = Field(default=6379)
+    cache_ttl: int = Field(default=86400)
+    kafka_bootstrap_servers: str = Field(default="kafka:29092")
+    kafka_topic: str = Field(default="PRODUCT_UPDATED")
 
-JWT_SECRET = os.getenv('JWT_SECRET')
-JWT_ALGORITHM = 'HS256'
+
+settings = CatalogSettings()
