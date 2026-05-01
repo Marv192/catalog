@@ -5,19 +5,23 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.constants import CATEGORY_LIMIT, CATEGORY_SKIP
 from app.crud.base import CRUDBase
 from app.models import Product
 from app.models.category import Category
 from app.routers.validators import validate_category_unique
 from app.schemas.categories import CategoryCreate, CategoryUpdate
-from app.utils.cache import get_cached, set_cache
+from app.utils.cache import get_cached, set_cache, delete_cache
 
 
 class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
     async def create(self, db: AsyncSession, *, obj_in: CategoryCreate) -> Category:
         await validate_category_unique(db=db, category_name=obj_in.name)
-        return await super().create(db=db, obj_in=obj_in)
+        new_category = await super().create(db=db, obj_in=obj_in)
+
+        await delete_cache('categories')
+        return new_category
 
     async def get(self, db: AsyncSession, *, category_id: UUID) -> Optional[Category]:
         category_info = await super().get(db=db, obj_id=category_id)
@@ -40,7 +44,7 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
                        "created_at": cat.created_at.isoformat()}
                       for cat in db_categories]
 
-        await set_cache("categories", categories)
+        await set_cache("categories", categories, settings.cache_ttl)
 
         return categories
 
@@ -56,7 +60,10 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
         if obj_in.name is not None and obj_in.name != db_obj.name:
             await validate_category_unique(db=db, category_name=obj_in.name)
 
-        return await super().update(db=db, db_obj=db_obj, obj_in=obj_in)
+        updated_category = await super().update(db=db, db_obj=db_obj, obj_in=obj_in)
+
+        await delete_cache('categories')
+        return updated_category
 
     async def delete(self, db: AsyncSession, *, category_id: UUID) -> Optional[Category]:
         result = await super().delete(db=db, obj_id=category_id)
@@ -64,6 +71,7 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
         if not result:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
+        await delete_cache('categories')
         return result
 
 
