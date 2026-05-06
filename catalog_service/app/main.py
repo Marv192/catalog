@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Security, Request, status
 from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.models import engine
 from app.routers.categories import categories
@@ -31,6 +32,8 @@ async def lifespan(app: FastAPI):
 security = HTTPBearer()
 
 app = FastAPI(lifespan=lifespan, title="Catalog Service")
+
+Instrumentator().instrument(app).expose(app)
 
 
 @app.exception_handler(PermissionDeniedError)
