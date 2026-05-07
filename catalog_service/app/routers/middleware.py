@@ -9,7 +9,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.public_paths = [
             '/docs',
-            '/openapi.json'
+            '/openapi.json',
+            '/metrics'
         ]
 
     async def dispatch(self, request: Request, call_next):
