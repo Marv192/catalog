@@ -142,7 +142,7 @@ services:
 
   grafana_catalog:
     image: grafana/grafana:13.0.1
-    container_name: grafana_auth
+    container_name: grafana_catalog
     restart: unless-stopped
     environment:
       - GF_LOG_LEVEL=debug

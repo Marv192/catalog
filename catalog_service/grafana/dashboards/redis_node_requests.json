@@ -4,19 +4,27 @@
   "metadata": {
     "name": "adtsf7d",
     "namespace": "default",
-    "uid": "d637bfe5-2f41-4cf3-979e-8940feb96061",
-    "resourceVersion": "1778103000188988",
-    "generation": 7,
-    "creationTimestamp": "2026-05-06T19:12:30Z",
+    "uid": "03181627-9f42-4307-8ff0-c7f7e8a83512",
+    "resourceVersion": "1778252240076989",
+    "generation": 5,
+    "creationTimestamp": "2026-05-06T21:32:37Z",
     "labels": {
-      "grafana.app/deprecatedInternalID": "2966402692489216"
+      "grafana.app/deprecatedInternalID": "3001664112447488"
     },
     "annotations": {
-      "grafana.app/createdBy": "user:efl9toq5vm70ge",
-      "grafana.app/folder": "",
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/folder": "afl9u58rjh1c0a",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerAllowsEdits": "true",
+      "grafana.app/managerId": "Catalog Service",
       "grafana.app/saved-from-ui": "Grafana v13.0.1 (a100054f)",
+      "grafana.app/sourceChecksum": "17ffbf511f2c6a8e300ebef276acfff9",
+      "grafana.app/sourcePath": "/etc/grafana/dashboards/redis_node_requests.json",
+      "grafana.app/sourceTimestamp": "1778103094000",
       "grafana.app/updatedBy": "user:efl9toq5vm70ge",
-      "grafana.app/updatedTimestamp": "2026-05-06T21:30:00Z"
+      "grafana.app/updatedTimestamp": "2026-05-08T14:57:20Z",
+      "grafana.app/folderTitle": "Catalog Service",
+      "grafana.app/folderUrl": "/dashboards/f/afl9u58rjh1c0a/catalog-service"
     }
   },
   "spec": {
@@ -49,7 +57,7 @@
         "kind": "Panel",
         "spec": {
           "id": 2,
-          "title": "Redis operations per second",
+          "title": "Redis op/s, latency",
           "description": "",
           "links": [],
           "data": {
@@ -69,11 +77,33 @@
                       "spec": {
                         "editorMode": "builder",
                         "expr": "sum(rate(redis_ops_total[5m]))",
-                        "legendFormat": "__auto",
+                        "legendFormat": "op/s",
                         "range": true
                       }
                     },
                     "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "prometheus-catalog"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "histogram_quantile(0.95, sum by(le) (rate(redis_latency_bucket[1h]))) * 1000",
+                        "instant": false,
+                        "legendFormat": "Latency",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -106,6 +136,7 @@
               },
               "fieldConfig": {
                 "defaults": {
+                  "unit": "reqps",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -153,7 +184,25 @@
                     }
                   }
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Latency"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.axisPlacement",
+                        "value": "right"
+                      },
+                      {
+                        "id": "unit",
+                        "value": "ms"
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -183,7 +232,7 @@
                       "spec": {
                         "editorMode": "code",
                         "expr": "(sum(increase(redis_ops_total{status=\"error\"}[5m])) or vector(0)) \n/ \n(sum(increase(redis_ops_total{}[5m])) or vector(1)) * 100",
-                        "legendFormat": "__auto",
+                        "legendFormat": "errors %",
                         "range": true
                       }
                     },
@@ -590,7 +639,7 @@
                       "spec": {
                         "editorMode": "code",
                         "expr": "sum(rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])) * 8 / 1024 / 1024 ",
-                        "legendFormat": "__auto",
+                        "legendFormat": "traffic",
                         "range": true
                       }
                     },
@@ -705,7 +754,7 @@
                       "spec": {
                         "editorMode": "code",
                         "expr": "(\n  sum(rate(http_requests_total{status=\"5xx\"}[5m])) or vector(0)\n) \n/ \nsum(rate(http_requests_total[5m])) \n* 100",
-                        "legendFormat": "__auto",
+                        "legendFormat": "5xx errors",
                         "range": true
                       }
                     },
@@ -824,7 +873,7 @@
                       "spec": {
                         "editorMode": "code",
                         "expr": "(sum(rate(redis_ops_total{operation=\"GET\", status=\"hit\"}[5m])))\n/\n(sum(rate(redis_ops_total{operation=\"GET\"}[5m])) or vector(1)) * 100",
-                        "legendFormat": "__auto",
+                        "legendFormat": "hit rate",
                         "range": true
                       }
                     },
