@@ -28,9 +28,9 @@ class KafkaProductProducer:
 
     def delivery_callback(self, err, msg):
         if err:
-            logger.error(f"Failed to deliver message: {err}")
+            logger.warning("Failed to deliver message", extra={"error": err})
         else:
-            logger.info(f"Message delivered to {msg.topic()}")
+            logger.info("Message delivered", extra={"topic": msg.topic, "partition": msg.partition})
 
     def send_product_updated(self, event: ProductUpdatedEvent, topic: str = settings.kafka_topic,
                              key: Optional[str] = None) -> bool:
@@ -42,16 +42,19 @@ class KafkaProductProducer:
             self.producer.produce(topic=topic, key=key_bytes, value=value, callback=self.delivery_callback)
             self.producer.poll(0)
 
-            logger.info(f"Message sent to {topic}")
+            logger.info("Message sent", extra={"topic": topic})
             return True
 
         except BufferError:
-            logger.warning(f"Message failed to send to {topic}, queue is full")
+            logger.warning("Message failed to send, queue is full", extra={"topic": topic})
             self.producer.poll(1)
             return self.send_product_updated(event, topic, key)
 
         except Exception as e:
-            logger.error(f"Failed to send message to {topic}: {e}")
+            logger.exception("Failed to send message", extra={
+                "topic": topic,
+                "error_type": type(e).__name__
+            })
             return False
 
 

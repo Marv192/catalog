@@ -4,6 +4,11 @@ filebeat.inputs:
     paths:
       - '/var/lib/docker/containers/*/*-json.log'
 
+    prospector:
+      scanner:
+        fingerprint.length: 64
+        fingerprint.offset: 0
+
     processors:
       - add_docker_metadata: ~
       - drop_event:

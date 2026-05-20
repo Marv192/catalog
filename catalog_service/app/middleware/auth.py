@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import Request, status, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.utils.tokens import decode_token
+
+logger = logging.getLogger(__name__)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -20,6 +24,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         auth_header = request.headers.get('Authorization')
 
         if not auth_header or not auth_header.startswith('Bearer '):
+            logger.warning("Auth middleware error: missing authorization header")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail='Invalid or missing Authorization Header')
 
@@ -27,7 +32,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         try:
             payload = decode_token(token)
-        except Exception:
+        except Exception as e:
+            logger.exception("Auth middleware error: Failed to decode token", extra={"error_type": type(e).__name__})
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
         request.state.user = payload

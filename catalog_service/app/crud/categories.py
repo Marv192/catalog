@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 from uuid import UUID
 
@@ -14,6 +15,8 @@ from app.routers.validators import validate_category_unique
 from app.schemas.categories import CategoryCreate, CategoryUpdate
 from app.utils.cache import get_cached, set_cache, delete_cache
 
+logger = logging.getLogger(__name__)
+
 
 class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
     async def create(self, db: AsyncSession, *, obj_in: CategoryCreate) -> Category:
@@ -21,12 +24,17 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
         new_category = await super().create(db=db, obj_in=obj_in)
 
         await delete_cache('categories')
+        logger.info("Category created", extra={
+            "category_id": str(new_category.id),
+            "category_name": new_category.name
+        })
         return new_category
 
     async def get(self, db: AsyncSession, *, category_id: UUID) -> Optional[Category]:
         category_info = await super().get(db=db, obj_id=category_id)
 
         if not category_info:
+            logger.warning("Category not found", extra={"category_id": str(category_id)})
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
         return category_info
@@ -63,15 +71,21 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate]):
         updated_category = await super().update(db=db, db_obj=db_obj, obj_in=obj_in)
 
         await delete_cache('categories')
+        logger.info("Category updated", extra={
+            "category_id": str(updated_category.id),
+            "new_category_name": updated_category.name
+        })
         return updated_category
 
     async def delete(self, db: AsyncSession, *, category_id: UUID) -> Optional[Category]:
         result = await super().delete(db=db, obj_id=category_id)
 
         if not result:
+            logger.warning("Category not found", extra={"category_id": str(category_id)})
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
         await delete_cache('categories')
+        logger.info("Category deleted", extra={"category_id": str(category_id)})
         return result
 
 
