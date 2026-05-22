@@ -15,10 +15,11 @@ async def set_cache(key: str, value: Any, ttl: int = CACHE_TTL):
     try:
         await redis_client.setex(key, ttl, json.dumps(value))
         redis_ops.labels(operation=f"SET", status="ok").inc()
+        logger.info("Set cache OK", extra={"key": key})
 
     except Exception as e:
         redis_ops.labels(operation=f"SET", status="error").inc()
-        logger.error(f"{key} cache write error: {e}")
+        logger.exception("Cache write error", extra={"key": key, "error_type": type(e).__name__})
 
     finally:
         redis_latency.labels(operation=f"SET").observe(time.perf_counter() - latency_start)
@@ -36,7 +37,7 @@ async def get_cached(key: str) -> Optional[list[dict]]:
 
     except Exception as e:
         redis_ops.labels(operation=f"GET", status="error").inc()
-        logger.error(f"{key} cache read error: {e}")
+        logger.exception("Cache read error", extra={"key": key, "error_type": type(e).__name__})
         return None
 
     finally:
@@ -48,10 +49,11 @@ async def delete_cache(key: str):
     try:
         await redis_client.delete(key)
         redis_ops.labels(operation=f"DELETE", status="ok").inc()
+        logger.info("Delete cache OK", extra={"key": key})
 
     except Exception as e:
         redis_ops.labels(operation=f"DELETE", status="error").inc()
-        logger.error(f"{key} cache delete error: {e}")
+        logger.exception("Cache delete error", extra={"key": key, "error_type": type(e).__name__})
 
     finally:
         redis_latency.labels(operation=f"DELETE").observe(time.perf_counter() - latency_start)

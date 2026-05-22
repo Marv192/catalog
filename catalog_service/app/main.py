@@ -6,12 +6,15 @@ from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from app.logging.logging_config import setup_json_logging
 from app.models import engine
 from app.routers.categories import categories
-from app.routers.middleware import AuthMiddleware
+from app.middleware.logging import LoggingMiddleware
+from app.middleware.auth import AuthMiddleware
 from app.routers.products import products
 from app.utils.exceptions import PermissionDeniedError, TokenExpiredError, InvalidTokenError
 
+setup_json_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -69,6 +72,7 @@ async def invalid_token_handler(request: Request, exc: InvalidTokenError):
     )
 
 
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
 app.include_router(categories, prefix="/categories", tags=["categories"], dependencies=[Security(security)])
 app.include_router(products, prefix="/products", tags=["products"], dependencies=[Security(security)])
